@@ -1,0 +1,48 @@
+{% extends "layout_app.html" %}
+{% block title %}面试日历 · HirePilot{% endblock %}
+{% block brand_href %}{{ url_for('hr.dashboard') }}{% endblock %}
+{% block nav %}
+  <a href="{{ url_for('hr.dashboard') }}">达标看板</a>
+  <a href="{{ url_for('hr.jobs') }}">岗位管理</a>
+  <a href="{{ url_for('hr.calendar') }}" class="active">面试日历</a>
+  <a href="{{ url_for('hr.settings_weights') }}">评分权重</a>
+  <a href="{{ url_for('hr.chat') }}">Agent 对话</a>
+{% endblock %}
+{% block content %}
+<h1>真人面试日历</h1>
+<p class="lede">安排与候选人的真人面试（区别于 AI 模拟面试）。{% if not current_user.is_hr_admin %}仅显示与你相关的场次。{% endif %}</p>
+
+{% if not items %}
+<p class="empty">暂无排期。可在候选人详情页安排。</p>
+{% else %}
+<div class="panel">
+  <table>
+    <thead>
+      <tr><th>时间</th><th>标题</th><th>候选人</th><th>地点/链接</th><th>状态</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for x in items %}
+      <tr>
+        <td class="mono">{{ x.starts_at }} — {{ x.ends_at }}</td>
+        <td>{{ x.title }}</td>
+        <td>
+          {% if x.resume and x.resume.candidate %}
+          <a href="{{ url_for('hr.resume_detail', resume_id=x.resume_id) }}">{{ x.resume.candidate.display_name }}</a>
+          {% else %}#{{ x.resume_id }}{% endif %}
+        </td>
+        <td>{{ x.location or '—' }}{% if x.meeting_url %}<br><a href="{{ x.meeting_url }}" target="_blank" rel="noopener">会议链接</a>{% endif %}</td>
+        <td>{{ x.status }}</td>
+        <td>
+          {% if x.status == 'scheduled' %}
+          <form method="post" action="{{ url_for('hr.calendar_cancel', live_id=x.id) }}">
+            <button class="btn secondary" type="submit">取消</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,99 @@
+{% extends "layout_app.html" %}
+{% block title %}评分权重 · HirePilot{% endblock %}
+{% block brand_href %}{{ url_for('hr.dashboard') }}{% endblock %}
+{% block nav %}
+  <a href="{{ url_for('hr.dashboard') }}">达标看板</a>
+  <a href="{{ url_for('hr.jobs') }}">岗位管理</a>
+  <a href="{{ url_for('hr.calendar') }}">面试日历</a>
+  <a href="{{ url_for('hr.settings_weights') }}" class="active">评分权重</a>
+  <a href="{{ url_for('hr.settings_notify') }}">通知设置</a>
+  <a href="{{ url_for('hr.chat') }}">Agent 对话</a>
+{% endblock %}
+{% block content %}
+<h1>评分权重</h1>
+<p class="lede">
+  组织「{{ org.name }}」可自定义权重。保存时会自动归一化为 100%；
+  四维权重变更后，会立即按已有分项分重算简历总分与达标（阈值 {{ threshold }}），无需重新上传。
+</p>
+
+<form method="post" class="panel" id="weights-form">
+  <h2 style="margin-top:0">看板综合排序</h2>
+  <p class="lede" style="font-size:0.9rem;margin-top:0">
+    有面试记录时：综合分 = 简历权重 × 简历分 + 面试权重 × 最高面试分；无面试则仅用简历分。
+  </p>
+  <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+    <div>
+      <label for="rank_resume">简历权重（%）</label>
+      <input id="rank_resume" name="rank_resume" type="number" min="0" max="100" step="1"
+             value="{{ '%.0f'|format(resume_w * 100) }}" required />
+    </div>
+    <div>
+      <label for="rank_interview">面试权重（%）</label>
+      <input id="rank_interview" name="rank_interview" type="number" min="0" max="100" step="1"
+             value="{{ '%.0f'|format(interview_w * 100) }}" required />
+    </div>
+  </div>
+  <p class="lede" id="rank-sum" style="font-size:0.85rem;margin:0 0 1.25rem">合计 —</p>
+
+  <h2>简历四维评分</h2>
+  <p class="lede" style="font-size:0.9rem;margin-top:0">
+    总分 = 技能×w₁ + 项目×w₂ + 教育×w₃ + 契合×w₄。影响新评分与保存后的重算。
+  </p>
+  <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+    <div>
+      <label for="weight_skill">技能匹配（%）</label>
+      <input id="weight_skill" name="weight_skill" type="number" min="0" max="100" step="1"
+             value="{{ '%.0f'|format(dims.skill * 100) }}" required class="dim-w" />
+    </div>
+    <div>
+      <label for="weight_project">项目经验（%）</label>
+      <input id="weight_project" name="weight_project" type="number" min="0" max="100" step="1"
+             value="{{ '%.0f'|format(dims.project * 100) }}" required class="dim-w" />
+    </div>
+    <div>
+      <label for="weight_education">教育背景（%）</label>
+      <input id="weight_education" name="weight_education" type="number" min="0" max="100" step="1"
+             value="{{ '%.0f'|format(dims.education * 100) }}" required class="dim-w" />
+    </div>
+    <div>
+      <label for="weight_fit">岗位契合（%）</label>
+      <input id="weight_fit" name="weight_fit" type="number" min="0" max="100" step="1"
+             value="{{ '%.0f'|format(dims.fit * 100) }}" required class="dim-w" />
+    </div>
+  </div>
+  <p class="lede" id="dim-sum" style="font-size:0.85rem;margin:0 0 1rem">合计 —</p>
+
+  <button class="btn" type="submit">保存权重</button>
+  <a class="btn secondary" href="{{ url_for('hr.dashboard') }}">返回看板</a>
+</form>
+
+<script>
+(function () {
+  function num(id) {
+    var el = document.getElementById(id);
+    return el ? (parseFloat(el.value) || 0) : 0;
+  }
+  function sync() {
+    var rs = num("rank_resume") + num("rank_interview");
+    var ds = 0;
+    document.querySelectorAll(".dim-w").forEach(function (el) {
+      ds += parseFloat(el.value) || 0;
+    });
+    var rankEl = document.getElementById("rank-sum");
+    var dimEl = document.getElementById("dim-sum");
+    if (rankEl) {
+      rankEl.textContent = "合计 " + rs.toFixed(0) + "%（保存时归一化到 100%）";
+      rankEl.style.color = Math.abs(rs - 100) < 0.5 ? "var(--ok, #2a7)" : "var(--warn, #b80)";
+    }
+    if (dimEl) {
+      dimEl.textContent = "合计 " + ds.toFixed(0) + "%（保存时归一化到 100%）";
+      dimEl.style.color = Math.abs(ds - 100) < 0.5 ? "var(--ok, #2a7)" : "var(--warn, #b80)";
+    }
+  }
+  document.querySelectorAll("#weights-form input").forEach(function (el) {
+    el.addEventListener("input", sync);
+  });
+  sync();
+})();
+</script>
+{% endblock %}

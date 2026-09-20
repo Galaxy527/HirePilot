@@ -1,0 +1,194 @@
+{% extends "layout_app.html" %}
+{% block title %}RAG 评测 · 运维 · HirePilot{% endblock %}
+{% block brand_href %}{{ url_for('ops.home') }}{% endblock %}
+{% block nav %}
+  <a href="{{ url_for('ops.home') }}">运维首页</a>
+  <a href="{{ url_for('ops.rag_eval') }}" class="active">RAG 评测</a>
+  <a href="{{ url_for('ops.backend_logs') }}">后端日志</a>
+  <a href="{{ url_for('hr.dashboard') }}">返回 HR</a>
+{% endblock %}
+{% block content %}
+<h1>RAG / RAGAS 评测看板</h1>
+<p class="lede">运维专用。查看企业级忠实度、相关性、检索隔离与 Golden 用例。DeepSeek 下使用项目 LLM 代理评测（官方 ragas 的 n&gt;1 不被支持）。</p>
+
+<div class="actions" style="margin-bottom:1rem">
+  <form method="post" action="{{ url_for('ops.rag_eval_run') }}" style="display:inline"
+        onsubmit="this.querySelector('button').disabled=true; this.querySelector('button').textContent='评测中…约1分钟'; return true;">
+    <button class="btn" type="submit">重新评测（企业级）</button>
+  </form>
+  <a class="btn secondary" href="{{ url_for('ops.rag_eval') }}">刷新</a>
+  <a class="btn secondary" href="{{ url_for('ops.home') }}">运维首页</a>
+</div>
+
+{% if files %}
+<form method="get" class="panel" style="margin-bottom:1rem">
+  <div class="form-row" style="margin-bottom:0">
+    <label for="f">历史报告</label>
+    <select id="f" name="f" onchange="this.form.submit()">
+      {% for item in files %}
+      <option value="{{ item.name }}" {% if item.name == report_name %}selected{% endif %}>
+        {{ item.name }}
+      </option>
+      {% endfor %}
+    </select>
+  </div>
+</form>
+{% endif %}
+
+{% if error %}
+<div class="flash error">{{ error }}</div>
+{% elif report %}
+{% set ent = report.enterprise or {} %}
+{% set ragas = report.ragas or {} %}
+{% set metrics = ent.metrics or {} %}
+{% set gates = ent.gates or {} %}
+
+<div class="panel" style="margin-bottom:1rem">
+  <div class="score-hero" style="align-items:center;gap:1.25rem">
+    <div>
+      <div class="score-num" style="font-size:2.5rem">{{ ent.grade or '—' }}</div>
+      <div class="badge {% if ent.pass %}ok{% else %}bad{% endif %}">
+        {% if ent.pass %}企业级通过{% else %}未通过{% endif %}
+      </div>
+    </div>
+    <div>
+      <p class="lede" style="margin:0">报告 <code>{{ report_name }}</code></p>
+      <p class="lede" style="margin:0.35rem 0 0">模式 {{ report.mode or '—' }} · {{ report.generated_at or '' }}</p>
+    </div>
+  </div>
+</div>
+
+<div class="dims" style="margin-bottom:1.25rem">
+  <div class="dim"><div class="k">生产忠实度</div><div class="v">{{ '%.2f'|format(ragas.production_faithfulness or 0) }}</div></div>
+  <div class="dim"><div class="k">生产相关性</div><div class="v">{{ '%.2f'|format(ragas.production_relevancy or 0) }}</div></div>
+  <div class="dim"><div class="k">幻觉检测分</div><div class="v">{{ '%.2f'|format(ragas.hallucination_detector_faithfulness or 0) }}</div></div>
+  <div class="dim"><div class="k">姓名检索精度</div><div class="v">{{ '%.2f'|format((ragas.retrieval or {}).context_precision_named_query or metrics.context_precision_named or 0) }}</div></div>
+  <div class="dim"><div class="k">Golden 通过率</div><div class="v">{{ '%.0f%%'|format((report.golden_pass_rate or 0) * 100) }}</div></div>
+  <div class="dim"><div class="k">拒答通过率</div><div class="v">{{ '%.0f%%'|format((report.refuse_pass_rate or 0) * 100) }}</div></div>
+</div>
+
+<section style="margin-bottom:1.5rem">
+  <h2>门禁检查</h2>
+  <div class="panel">
+    <table>
+      <thead><tr><th>门禁</th><th>结果</th></tr></thead>
+      <tbody>
+        {% for name, ok in gates.items() %}
+        <tr>
+          <td><code>{{ name }}</code></td>
+          <td>{% if ok %}<span class="badge ok">PASS</span>{% else %}<span class="badge bad">FAIL</span>{% endif %}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="2">（无门禁数据 — 可能是非 enterprise 报告）</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% if ent.failed_gates %}
+    <p class="lede" style="margin-top:0.75rem;color:#b42318">失败：{{ ent.failed_gates|join(', ') }}</p>
+    {% endif %}
+  </div>
+</section>
+
+<section style="margin-bottom:1.5rem">
+  <h2>RAGAS 分用例（忠实度 / 相关性）</h2>
+  <div class="panel">
+    <table>
+      <thead>
+        <tr><th>用例</th><th>类型</th><th>忠实度</th><th>相关性</th><th>说明</th></tr>
+      </thead>
+      <tbody>
+        {% for c in ragas.per_case or [] %}
+        <tr>
+          <td><code>{{ c.id }}</code></td>
+          <td>{{ c.kind or '—' }}</td>
+          <td>
+            <span class="badge {% if (c.faithfulness or 0) >= 0.9 %}ok{% elif (c.faithfulness or 0) <= 0.4 %}bad{% else %}warn{% endif %}">
+              {{ '%.2f'|format(c.faithfulness or 0) }}
+            </span>
+          </td>
+          <td>{{ '%.2f'|format(c.answer_relevancy or 0) }}</td>
+          <td>{{ c.brief or '—' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5">本报告无 RAGAS per_case（可能当时 skipped）</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% if ragas.interpretation %}
+    <ul class="lede" style="margin:0.75rem 0 0;padding-left:1.2rem;font-size:0.9rem">
+      {% for k, v in ragas.interpretation.items() %}
+      <li><strong>{{ k }}</strong>：{{ v }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+    {% if ragas.note %}
+    <p class="lede" style="margin-top:0.75rem;font-size:0.85rem">{{ ragas.note }}</p>
+    {% endif %}
+  </div>
+</section>
+
+<section style="margin-bottom:1.5rem">
+  <h2>Golden 用例（业务契约）</h2>
+  <div class="panel">
+    <table>
+      <thead>
+        <tr><th>ID</th><th>问题</th><th>结果</th><th>答案摘要</th></tr>
+      </thead>
+      <tbody>
+        {% for c in report.cases or [] %}
+        <tr>
+          <td><code>{{ c.id }}</code></td>
+          <td>{{ c.question }}</td>
+          <td>
+            {% if c.pass %}<span class="badge ok">PASS</span>
+            {% else %}<span class="badge bad">FAIL</span>{% endif %}
+            {% if c.must_refuse %}<span class="badge">拒答</span>{% endif %}
+          </td>
+          <td style="max-width:28rem;font-size:0.85rem">
+            {{ (c.answer or '')[:160] }}{% if c.answer and c.answer|length > 160 %}…{% endif %}
+            {% if c.failures %}<br><span class="badge bad">{{ c.failures|join(', ') }}</span>{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+{% if ragas.retrieval %}
+<section style="margin-bottom:1.5rem">
+  <h2>检索质量</h2>
+  <div class="panel">
+    <table>
+      <tbody>
+        {% for k, v in ragas.retrieval.items() %}
+        <tr><td><code>{{ k }}</code></td><td>{{ v }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+{% if ragas.diagnostics %}
+<section style="margin-bottom:1.5rem">
+  <h2>诊断摘要</h2>
+  <div class="panel">
+    <table>
+      <tbody>
+        <tr><td>猜到姓名</td><td>{{ ragas.diagnostics.guess_name }}</td></tr>
+        <tr><td>完整/简历导出</td><td>{{ ragas.diagnostics.answer_is_dossier }}</td></tr>
+        <tr><td>含 JD 墙</td><td>{{ ragas.diagnostics.answer_has_jd_wall }}</td></tr>
+        <tr><td>含面试全文</td><td>{{ ragas.diagnostics.answer_has_interview_dump }}</td></tr>
+        <tr><td>开源仓库出现</td><td>{{ ragas.diagnostics.answer_has_opensource_repos }}</td></tr>
+        <tr><td>串张三事实</td><td>{{ ragas.diagnostics.answer_pollutes_zhangsan_facts }}</td></tr>
+        <tr><td>原始污染数</td><td>{{ ragas.diagnostics.retrieve_zhangsan_pollution }}</td></tr>
+        <tr><td>scope 后污染</td><td>{{ ragas.diagnostics.retrieve_scoped_pollution }}</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+{% endif %}
+{% endblock %}

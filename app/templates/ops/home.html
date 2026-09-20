@@ -1,0 +1,20 @@
+{% extends "layout_app.html" %}
+{% block title %}运维控制台 · HirePilot{% endblock %}
+{% block brand_href %}{{ url_for('ops.home') }}{% endblock %}
+{% block nav %}
+  <a href="{{ url_for('ops.home') }}" class="active">运维首页</a>
+  <a href="{{ url_for('ops.rag_eval') }}">RAG 评测</a>
+  <a href="{{ url_for('ops.backend_logs') }}">后端日志</a>
+  <a href="{{ url_for('hr.dashboard') }}">返回 HR</a>
+{% endblock %}
+{% block content %}
+<h1>运维控制台</h1>
+<p class="lede">本区域仅管理员可见，不属于 HR 业务前台。用于 RAG 质量门禁与运行日志排查。</p>
+<div class="actions">
+  <a class="btn" href="{{ url_for('ops.rag_eval') }}">RAG / RAGAS 评测</a>
+  <a class="btn secondary" href="{{ url_for('ops.backend_logs') }}">后端日志</a>
+</div>
+<p class="lede" style="margin-top:1.25rem;font-size:0.9rem">
+  直达地址：<code>/ops</code> · <code>/ops/rag-eval</code> · <code>/ops/logs</code>
+</p>
+{% endblock %}

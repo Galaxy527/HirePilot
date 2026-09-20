@@ -1,0 +1,225 @@
+{% extends "layout_app.html" %}
+{% block title %}候选人报告 · HirePilot{% endblock %}
+{% block brand_href %}{{ url_for('hr.dashboard') }}{% endblock %}
+{% block nav %}
+  <a href="{{ url_for('hr.dashboard') }}">达标看板</a>
+  <a href="{{ url_for('hr.jobs') }}">岗位管理</a>
+  <a href="{{ url_for('hr.calendar') }}">面试日历</a>
+  <a href="{{ url_for('hr.settings_weights') }}">评分权重</a>
+  <a href="{{ url_for('hr.chat') }}">Agent 对话</a>
+{% endblock %}
+{% block content %}
+<h1>{{ resume.candidate.display_name }} · 简历 #{{ resume.id }}</h1>
+<p class="lede">
+  求职岗位 {{ resume.target_job_title or '未指定' }} · 综合分 {{ '%.1f'|format(composite) }} · 阈值 {{ threshold }}
+  · 管道 <strong>{{ stage_labels.get(resume.pipeline_stage, resume.pipeline_stage) }}</strong>
+  · 负责人 {{ resume.assigned_hr.display_name if resume.assigned_hr else '未分派' }}
+  {% if not resume.meets_threshold %}<span class="badge bad">未达标</span>{% endif %}
+</p>
+
+{% if resume.processing_status != 'ready' %}
+<div class="panel"><span class="badge warn">评分状态：{{ resume.processing_status }}</span></div>
+{% else %}
+<div class="panel">
+  <div class="score-hero">
+    <div class="score-num">{{ resume.total_score }}</div>
+    <div>
+      <div class="badge {% if resume.recommendation == '推荐' %}ok{% elif resume.recommendation == '待定' %}warn{% else %}bad{% endif %}">
+        {{ resume.recommendation }}
+      </div>
+      <p class="lede" style="margin:0.5rem 0 0">{{ resume.recommendation_reason }}</p>
+    </div>
+  </div>
+  <div class="dims">
+    <div class="dim"><div class="k">技能</div><div class="v">{{ resume.skill_score }}</div></div>
+    <div class="dim"><div class="k">项目</div><div class="v">{{ resume.project_score }}</div></div>
+    <div class="dim"><div class="k">教育</div><div class="v">{{ resume.education_score }}</div></div>
+    <div class="dim"><div class="k">契合</div><div class="v">{{ resume.fit_score }}</div></div>
+  </div>
+</div>
+{% include "partials/score_report.html" %}
+{% endif %}
+
+<div class="actions">
+  {% if not resume.assigned_hr_id or resume.assigned_hr_id == current_user.id %}
+  <form method="post">
+    <input type="hidden" name="action" value="claim" />
+    <button class="btn secondary" type="submit">认领为我负责</button>
+  </form>
+  {% endif %}
+  <form method="post" action="{{ url_for('hr.delete_resume', resume_id=resume.id) }}"
+        onsubmit="return confirm('确认删除简历 #{{ resume.id }}？相关面试记录也会删除，且不可恢复。');">
+    <button class="btn secondary" type="submit" style="color:#b42318">删除简历</button>
+  </form>
+</div>
+
+{% if is_admin %}
+<section style="margin-top:1rem">
+  <h2>分派负责人</h2>
+  <form method="post" class="panel">
+    <input type="hidden" name="action" value="assign" />
+    <div class="form-row">
+      <label for="assigned_hr_id">HR</label>
+      <select id="assigned_hr_id" name="assigned_hr_id">
+        <option value="">未分派</option>
+        {% for h in hrs %}
+        <option value="{{ h.id }}" {% if resume.assigned_hr_id == h.id %}selected{% endif %}>
+          {{ h.display_name }} ({{ h.hr_level or 'recruiter' }})
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    <button class="btn" type="submit">保存分派</button>
+  </form>
+</section>
+{% endif %}
+
+<section style="margin-top:1.25rem">
+  <h2>招聘管道</h2>
+  <form method="post" class="panel" id="pipeline-form">
+    <input type="hidden" name="action" value="pipeline" />
+    <div class="form-row">
+      <label for="pipeline_stage">阶段</label>
+      <select id="pipeline_stage" name="pipeline_stage">
+        {% for s in stages %}
+        <option value="{{ s }}" {% if resume.pipeline_stage == s %}selected{% endif %}>{{ stage_labels.get(s, s) }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div id="reject-fields" class="pipeline-extra" hidden>
+      <div class="form-row">
+        <label for="reject_reason">淘汰原因（必填）</label>
+        <select id="reject_reason" name="reject_reason">
+          <option value="">—</option>
+          {% for r in reject_reasons %}
+          <option value="{{ r }}" {% if resume.reject_reason == r %}selected{% endif %}>{{ reject_labels.get(r, r) }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-row">
+        <label for="reject_note">淘汰备注</label>
+        <textarea id="reject_note" name="reject_note" rows="2">{{ resume.reject_note or '' }}</textarea>
+      </div>
+    </div>
+    <p id="pipeline-terminal-hint" class="lede pipeline-extra" hidden style="margin:0 0 0.85rem;font-size:0.9rem">
+      已录用为终态，无需再填写淘汰信息；保存即可。
+    </p>
+    <button class="btn" type="submit">更新管道</button>
+  </form>
+</section>
+<script>
+(function () {
+  var stage = document.getElementById("pipeline_stage");
+  var rejectFields = document.getElementById("reject-fields");
+  var terminalHint = document.getElementById("pipeline-terminal-hint");
+  var rejectReason = document.getElementById("reject_reason");
+  var liveSection = document.getElementById("live-interview-section");
+  if (!stage || !rejectFields) return;
+  function syncPipelineExtra() {
+    var v = stage.value;
+    var isRejected = v === "rejected";
+    var isHired = v === "hired";
+    var isTerminal = isHired || isRejected;
+    rejectFields.hidden = !isRejected;
+    if (terminalHint) terminalHint.hidden = !isHired;
+    if (rejectReason) rejectReason.required = isRejected;
+    if (liveSection) liveSection.hidden = isTerminal;
+  }
+  stage.addEventListener("change", syncPipelineExtra);
+  syncPipelineExtra();
+})();
+</script>
+
+<section style="margin-top:1.25rem" id="live-interview-section"
+  {% if resume.pipeline_stage in ('hired', 'rejected') %}hidden{% endif %}>
+  <h2>安排真人面试</h2>
+  <form method="post" class="panel">
+    <input type="hidden" name="action" value="schedule" />
+    <div class="form-row">
+      <label for="title">标题</label>
+      <input id="title" name="title" value="真人技术面试" />
+    </div>
+    <div class="form-row">
+      <label for="starts_at">开始时间</label>
+      <input id="starts_at" name="starts_at" type="datetime-local" required />
+    </div>
+    <div class="form-row">
+      <label for="ends_at">结束时间</label>
+      <input id="ends_at" name="ends_at" type="datetime-local" required />
+    </div>
+    <div class="form-row">
+      <label for="interviewer_id">面试官</label>
+      <select id="interviewer_id" name="interviewer_id">
+        {% for h in hrs %}
+        <option value="{{ h.id }}" {% if h.id == current_user.id %}selected{% endif %}>{{ h.display_name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-row">
+      <label for="location">地点</label>
+      <input id="location" name="location" placeholder="会议室 / 线下地址" />
+    </div>
+    <div class="form-row">
+      <label for="meeting_url">会议链接</label>
+      <input id="meeting_url" name="meeting_url" placeholder="https://..." />
+    </div>
+    <div class="form-row">
+      <label for="live_notes">备注</label>
+      <textarea id="live_notes" name="live_notes" rows="2"></textarea>
+    </div>
+    <button class="btn warn" type="submit">写入日历</button>
+  </form>
+  {% if live_interviews %}
+  <div class="panel" style="margin-top:0.8rem">
+    <table>
+      <thead><tr><th>时间</th><th>标题</th><th>状态</th></tr></thead>
+      <tbody>
+        {% for x in live_interviews %}
+        <tr>
+          <td class="mono">{{ x.starts_at }}</td>
+          <td>{{ x.title }}</td>
+          <td>{{ x.status }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</section>
+
+<section style="margin-top:1.25rem">
+  <h2>协作备注</h2>
+  <form method="post" class="panel" style="margin-bottom:0.8rem">
+    <input type="hidden" name="action" value="note" />
+    <div class="form-row">
+      <label for="note_body">新增备注</label>
+      <textarea id="note_body" name="note_body" required rows="3" placeholder="仅 HR 可见的协作备注…"></textarea>
+    </div>
+    <button class="btn secondary" type="submit">添加备注</button>
+  </form>
+  {% if not notes %}
+  <p class="empty">暂无备注。</p>
+  {% else %}
+  {% for n in notes %}
+  <div class="panel" style="margin-bottom:0.5rem">
+    <div class="lede" style="margin:0 0 0.35rem;font-size:0.85rem">{{ n.author.display_name }} · {{ n.created_at }}</div>
+    <div>{{ n.body }}</div>
+  </div>
+  {% endfor %}
+  {% endif %}
+</section>
+
+<section style="margin-top:1.25rem">
+  <h2>AI 模拟面试记录</h2>
+  {% if not interviews %}
+  <p class="empty">尚未模拟面试。</p>
+  {% else %}
+  {% for s in interviews %}
+  <div class="panel" style="margin-bottom:0.8rem">
+    <h3>第 {{ s.round_no }} 场 · 分 {{ s.score if s.score is not none else '—' }} · {{ s.status }}</h3>
+    <pre class="mono" style="color:var(--ink)">{{ s.report or '（进行中）' }}</pre>
+  </div>
+  {% endfor %}
+  {% endif %}
+</section>
+{% endblock %}

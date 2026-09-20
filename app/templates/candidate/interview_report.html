@@ -1,0 +1,17 @@
+{% extends "layout_app.html" %}
+{% block title %}面试报告 · HirePilot{% endblock %}
+{% block brand_href %}{{ url_for('candidate.home') }}{% endblock %}
+{% block nav %}{% set nav_active = 'interview' %}{% include "candidate/_nav.html" %}{% endblock %}
+{% block content %}
+<h1>面试报告 · 第 {{ session.round_no }} 场</h1>
+<div class="panel score-hero">
+  <div class="score-num">{{ session.score if session.score is not none else '—' }}</div>
+  <p class="lede" style="margin:0">简历 #{{ session.resume_id }} · {{ session.status }}</p>
+</div>
+<div class="panel" style="margin-top:1rem">
+  <pre class="mono" style="color:var(--ink)">{{ session.report }}</pre>
+</div>
+<div class="actions">
+  <a class="btn secondary" href="{{ url_for('candidate.resume_detail', resume_id=session.resume_id) }}">返回简历</a>
+</div>
+{% endblock %}

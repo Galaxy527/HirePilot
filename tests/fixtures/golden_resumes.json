@@ -1,0 +1,18 @@
+[
+  {
+    "id": "strong_python",
+    "job_title": "Python 后端工程师",
+    "job_requirements": "必备：Python、Flask、SQL、Git、Linux",
+    "resume_text": "张三，本科计算机。熟练 Python / Flask / SQL / Git / Linux，做过招聘中台后端与 Docker 部署。有 2 年经验。",
+    "min_total": 55,
+    "recommendation_in": ["推荐", "待定", "不推荐"]
+  },
+  {
+    "id": "weak_unrelated",
+    "job_title": "Python 后端工程师",
+    "job_requirements": "必备：Python、Flask、SQL",
+    "resume_text": "李四，高中学历。爱好唱歌跳舞，无编程经验。",
+    "max_total": 70,
+    "recommendation_in": ["推荐", "待定", "不推荐"]
+  }
+]

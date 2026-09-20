@@ -1,0 +1,28 @@
+{% extends "layout_app.html" %}
+{% block title %}我的面试安排 · HirePilot{% endblock %}
+{% block brand_href %}{{ url_for('candidate.home') }}{% endblock %}
+{% block nav %}{% set nav_active = 'calendar' %}{% include "candidate/_nav.html" %}{% endblock %}
+{% block content %}
+<h1>真人面试安排</h1>
+<p class="lede">HR 为你安排的真人面试日程（非 AI 模拟面试）。</p>
+{% if not items %}
+<p class="empty">暂无安排。</p>
+{% else %}
+<div class="panel">
+  <table>
+    <thead><tr><th>时间</th><th>标题</th><th>地点/链接</th><th>状态</th><th>备注</th></tr></thead>
+    <tbody>
+      {% for x in items %}
+      <tr>
+        <td class="mono">{{ x.starts_at }} — {{ x.ends_at }}</td>
+        <td>{{ x.title }}</td>
+        <td>{{ x.location or '—' }}{% if x.meeting_url %}<br><a href="{{ x.meeting_url }}" target="_blank" rel="noopener">会议链接</a>{% endif %}</td>
+        <td>{{ x.status }}</td>
+        <td>{{ x.notes or '—' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

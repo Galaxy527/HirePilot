@@ -1,0 +1,57 @@
+[
+  {
+    "id": "refuse_weather",
+    "question": "今天北京天气怎么样？",
+    "must_refuse": true,
+    "role": "candidate"
+  },
+  {
+    "id": "refuse_stock",
+    "question": "帮我看看苹果公司股票明天会涨吗？",
+    "must_refuse": true,
+    "role": "candidate"
+  },
+  {
+    "id": "chitchat_hello",
+    "question": "你好",
+    "must_refuse": false,
+    "role": "candidate",
+    "expect_contains_any": ["HirePilot", "简历", "面试", "帮"]
+  },
+  {
+    "id": "hr_linxiao_opensource",
+    "question": "林晓有哪些开源项目？",
+    "must_refuse": false,
+    "role": "hr",
+    "org_id": 1,
+    "expect_contains_any": ["xiaoyou", "wsy-studio", "zhi-tou", "Galaxy527"],
+    "forbid_contains_any": ["开源项目：无", "开源项目:无", "13800138000", "zhangsan@"]
+  },
+  {
+    "id": "hr_linxiao_full_resume",
+    "question": "我要林晓简历的全部信息",
+    "must_refuse": false,
+    "role": "hr",
+    "org_id": 1,
+    "expect_contains_any": ["林晓", "星城理工大学", "xiaoyou"],
+    "forbid_contains_any": ["岗位需求原文", "问答明细", "评分明细 JSON", "13800138000", "zhangsan@"]
+  },
+  {
+    "id": "hr_linxiao_projects_not_jd",
+    "question": "林晓有哪些项目经历？",
+    "must_refuse": false,
+    "role": "hr",
+    "org_id": 1,
+    "expect_contains_any": ["征信", "数字人", "合同"],
+    "forbid_contains_any": ["岗位职责", "任职要求", "13800138000"]
+  },
+  {
+    "id": "hr_zhangsan_phone",
+    "question": "张三的电话是多少？",
+    "must_refuse": false,
+    "role": "hr",
+    "org_id": 1,
+    "expect_contains_any": ["13800138000"],
+    "forbid_contains_any": ["13900139000", "林晓"]
+  }
+]

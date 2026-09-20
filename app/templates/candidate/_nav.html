@@ -1,0 +1,8 @@
+<a href="{{ url_for('candidate.home') }}" class="{% if nav_active == 'home' %}active{% endif %}">首页</a>
+<a href="{{ url_for('candidate.upload_resume') }}" class="{% if nav_active == 'upload' %}active{% endif %}">上传简历</a>
+<a href="{{ url_for('candidate.interview_hub') }}" class="{% if nav_active == 'interview' %}active{% endif %}">模拟面试</a>
+<a href="{{ url_for('candidate.calendar') }}" class="{% if nav_active == 'calendar' %}active{% endif %}">面试日历</a>
+<a href="{{ url_for('candidate.history') }}" class="{% if nav_active == 'history' %}active{% endif %}">历史</a>
+<a href="{{ url_for('candidate.chat') }}" class="{% if nav_active == 'chat' %}active{% endif %}">Agent 对话</a>
+<a href="{{ url_for('candidate.notify_settings') }}" class="{% if nav_active == 'settings' %}active{% endif %}">通知设置</a>
+<a href="{{ url_for('candidate.privacy_delete') }}" class="{% if nav_active == 'privacy' %}active{% endif %}">隐私</a>

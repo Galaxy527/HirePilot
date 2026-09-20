@@ -1,0 +1,29 @@
+{% extends "layout_app.html" %}
+{% block title %}历史 · HirePilot{% endblock %}
+{% block brand_href %}{{ url_for('candidate.home') }}{% endblock %}
+{% block nav %}{% set nav_active = 'history' %}{% include "candidate/_nav.html" %}{% endblock %}
+{% block content %}
+<h1>个人中心 / 历史</h1>
+<p class="lede">简历版本、评分、推荐意见与最多 3 场面试记录。</p>
+{% for r in resumes %}
+<div class="panel" style="margin-bottom:1rem">
+  <h3>简历 #{{ r.id }} · {{ r.filename or '文本' }} · 总分 {{ r.total_score }}</h3>
+  <p class="lede" style="margin-bottom:0.6rem">{{ r.recommendation }} — {{ r.recommendation_reason }}</p>
+  <ul>
+    {% for s in r.interviews %}
+    <li>
+      第 {{ s.round_no }} 场 · {{ s.status }} · 分 {{ s.score if s.score is not none else '—' }}
+      {% if s.status == 'completed' %}
+      · <a href="{{ url_for('candidate.interview_report', session_id=s.id) }}">报告</a>
+      {% endif %}
+    </li>
+    {% else %}
+    <li class="empty">无面试记录</li>
+    {% endfor %}
+  </ul>
+  <a href="{{ url_for('candidate.resume_detail', resume_id=r.id) }}">查看详情</a>
+</div>
+{% else %}
+<p class="empty">暂无记录。</p>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,92 @@
+{% extends "layout_app.html" %}
+{% block title %}模拟面试 · HirePilot{% endblock %}
+{% block brand_href %}{{ url_for('candidate.home') }}{% endblock %}
+{% block nav %}{% set nav_active = 'interview' %}{% include "candidate/_nav.html" %}{% endblock %}
+{% block content %}
+<h1>模拟面试</h1>
+<p class="lede">
+  简历综合分达到 {{ threshold }} 后可开启模拟面试；每份简历最多 {{ max_interviews }} 场，题目由 Agent 现场生成。
+</p>
+
+{% if active_sessions %}
+<section style="margin-bottom:1.5rem">
+  <h2>进行中</h2>
+  <div class="panel">
+    <table>
+      <thead><tr><th>场次</th><th>简历</th><th>进度</th><th></th></tr></thead>
+      <tbody>
+        {% for s in active_sessions %}
+        <tr>
+          <td>第 {{ s.round_no }} 场</td>
+          <td>#{{ s.resume_id }} · {{ s.resume.filename or '简历' }}</td>
+          <td>{{ s.current_index }}/{{ s.questions()|length }}</td>
+          <td><a class="btn" href="{{ url_for('candidate.interview_room', session_id=s.id) }}">继续面试</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+<section>
+  <h2>可开始面试的简历</h2>
+  {% if eligible %}
+  <div class="panel">
+    <table>
+      <thead>
+        <tr><th>简历</th><th>总分</th><th>推荐</th><th>已用次数</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for r in eligible %}
+        <tr>
+          <td>#{{ r.id }} · {{ r.filename or '文本简历' }}</td>
+          <td>{{ r.total_score }}</td>
+          <td>{{ r.recommendation }}</td>
+          <td>{{ r.interview_count() }}/{{ max_interviews }}</td>
+          <td>
+            <form method="post" action="{{ url_for('candidate.interview_start', resume_id=r.id) }}" style="display:inline">
+              <button class="btn warn" type="submit">开始面试</button>
+            </form>
+            <a href="{{ url_for('candidate.resume_detail', resume_id=r.id) }}">查看评分</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="panel">
+    <p class="empty" style="padding:0.5rem 0">
+      {% if not resumes %}
+      还没有简历。请先 <a href="{{ url_for('candidate.upload_resume') }}">上传简历</a>，评分达标（≥{{ threshold }}）后即可面试。
+      {% else %}
+      当前没有可开启的面试：请确认简历分 ≥ {{ threshold }}，且未用尽 {{ max_interviews }} 次机会。
+      <a href="{{ url_for('candidate.home') }}">查看我的简历</a>
+      {% endif %}
+    </p>
+  </div>
+  {% endif %}
+</section>
+
+{% if completed %}
+<section style="margin-top:1.5rem">
+  <h2>历史面试报告</h2>
+  <div class="panel">
+    <table>
+      <thead><tr><th>场次</th><th>简历</th><th>分数</th><th></th></tr></thead>
+      <tbody>
+        {% for s in completed %}
+        <tr>
+          <td>第 {{ s.round_no }} 场</td>
+          <td>#{{ s.resume_id }}</td>
+          <td>{{ s.score if s.score is not none else '—' }}</td>
+          <td><a href="{{ url_for('candidate.interview_report', session_id=s.id) }}">查看报告</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

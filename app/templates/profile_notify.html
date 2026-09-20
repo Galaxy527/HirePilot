@@ -1,0 +1,39 @@
+{% extends "layout_app.html" %}
+{% block title %}通知设置 · HirePilot{% endblock %}
+{% block brand_href %}{{ brand_href }}{% endblock %}
+{% block nav %}
+  {% if role == 'candidate' %}
+  {% set nav_active = 'settings' %}{% include "candidate/_nav.html" %}
+  {% else %}
+  <a href="{{ url_for('hr.dashboard') }}">达标看板</a>
+  <a href="{{ url_for('hr.jobs') }}">岗位管理</a>
+  <a href="{{ url_for('hr.settings_weights') }}">评分权重</a>
+  <a href="{{ url_for('hr.settings_notify') }}" class="active">通知设置</a>
+  <a href="{{ url_for('hr.chat') }}">Agent 对话</a>
+  {% endif %}
+{% endblock %}
+{% block content %}
+<h1>通知与联系方式</h1>
+<p class="lede">
+  站内通知始终保留。配置邮箱/手机后，系统还会走邮件/短信通道
+  （未配置 SMTP/Twilio 时写入 <code>data/outbox</code>，便于本地演示）。
+</p>
+<form method="post" class="panel">
+  <div class="form-row">
+    <label for="email">邮箱</label>
+    <input id="email" name="email" type="email" value="{{ user.email or '' }}" />
+  </div>
+  <div class="form-row">
+    <label for="phone">手机</label>
+    <input id="phone" name="phone" type="tel" value="{{ user.phone or '' }}" />
+  </div>
+  <div class="form-row">
+    <label><input type="checkbox" name="notify_email" value="1" {% if user.notify_email %}checked{% endif %} /> 启用邮件通知</label>
+  </div>
+  <div class="form-row">
+    <label><input type="checkbox" name="notify_sms" value="1" {% if user.notify_sms %}checked{% endif %} /> 启用短信通知</label>
+  </div>
+  <button class="btn" type="submit">保存</button>
+  <button class="btn secondary" type="submit" name="action" value="test">发送测试通知</button>
+</form>
+{% endblock %}

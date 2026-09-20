@@ -1,0 +1,57 @@
+{% extends "layout_app.html" %}
+{% block title %}Agent 对话 · HirePilot{% endblock %}
+{% block body_class %}chat-page{% endblock %}
+{% block brand_href %}{{ url_for('candidate.home') }}{% endblock %}
+{% block nav %}{% set nav_active = 'chat' %}{% include "candidate/_nav.html" %}{% endblock %}
+{% block content %}
+<div class="chat-layout" id="chatApp"
+     data-stream-url="{{ stream_url }}"
+     data-chat-base="{{ url_for('candidate.chat') }}"
+     data-session-id="{{ chat_session.id if chat_session else '' }}">
+  <aside class="panel session-list" id="sessionList">
+    <div class="session-toolbar">
+      <button type="button" class="session-toggle" id="sessionToggle" title="收起/展开会话列表" aria-expanded="true">‹</button>
+      <a class="session-new" href="{{ url_for('candidate.chat') }}">+ 新对话</a>
+    </div>
+    <div class="session-body" id="sessionBody">
+      {% for s in sessions %}
+      <div class="session-item">
+        <a href="{{ url_for('candidate.chat', session_id=s.id) }}"
+           data-session-id="{{ s.id }}"
+           class="{% if chat_session and chat_session.id == s.id %}active{% endif %}">{{ s.title }}</a>
+        <button type="button" class="session-del" data-delete-session="{{ s.id }}" title="删除对话">×</button>
+      </div>
+      {% endfor %}
+    </div>
+  </aside>
+  <section class="panel chat-main">
+    <div class="chat-messages" id="chatMessages">
+      {% for m in messages %}
+      <div class="bubble {{ m.role }}">
+        <div class="bubble-text">{{ m.content | strip_citations }}</div>
+        {% if m.role == 'assistant' and m.sources() %}
+        <details class="cite-block">
+          <summary>引用 {{ m.sources()|length }}</summary>
+          <ul class="cite-list">
+            {% for src in m.sources() %}
+            <li>
+              <div class="cite-src">{{ src.source }}</div>
+              {% if src.snippet %}<div class="cite-snip">{{ src.snippet }}</div>{% endif %}
+            </li>
+            {% endfor %}
+          </ul>
+        </details>
+        {% endif %}
+      </div>
+      {% else %}
+      <p class="empty">发送消息开始对话</p>
+      {% endfor %}
+    </div>
+    <form id="chatForm" class="chat-compose">
+      <textarea id="chatInput" name="message" required rows="2" placeholder="输入消息…"></textarea>
+      <button class="btn" id="chatSend" type="submit">发送</button>
+    </form>
+  </section>
+</div>
+<script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+{% endblock %}

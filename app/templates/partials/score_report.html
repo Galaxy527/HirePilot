@@ -1,0 +1,97 @@
+{# Expects: score_report dict from scoring.build_details_for_resume #}
+{% if score_report %}
+<section class="score-report">
+  <h2>评分详情</h2>
+  <p class="lede" style="margin-bottom:0.8rem">
+    对照岗位：{{ score_report.job_profile }}
+    · 四维加权（技能 {{ '%.0f'|format((score_report.weights.skill or 0.25) * 100) }}%
+    / 项目 {{ '%.0f'|format((score_report.weights.project or 0.25) * 100) }}%
+    / 教育 {{ '%.0f'|format((score_report.weights.education or 0.25) * 100) }}%
+    / 契合 {{ '%.0f'|format((score_report.weights.fit or 0.25) * 100) }}%）
+  </p>
+
+  <div class="dim-detail-list">
+    {% for key, dim in score_report.dimensions.items() %}
+    <article class="panel dim-detail">
+      <div class="dim-detail-head">
+        <div>
+          <h3>{{ dim.label }}</h3>
+          <span class="badge">{{ dim.level }}</span>
+          <span class="badge">权重 {{ '%.0f'|format((dim.weight or 0.25) * 100) }}%</span>
+        </div>
+        <div class="dim-detail-score">{{ dim.score }}</div>
+      </div>
+      <div class="score-bar" aria-hidden="true">
+        <span style="width: {{ [dim.score, 100]|min }}%"></span>
+      </div>
+      <p class="dim-comment">{{ dim.comment }}</p>
+      {% if dim.evidence %}
+      <div class="tag-row">
+        <span class="tag-label">依据</span>
+        {% for e in dim.evidence %}
+        <span class="tag">{{ e }}</span>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </article>
+    {% endfor %}
+  </div>
+
+  <div class="grid grid-2" style="margin-top:1rem">
+    <div class="panel">
+      <h3>优势</h3>
+      <ul class="plain-list">
+        {% for s in score_report.strengths %}
+        <li>{{ s }}</li>
+        {% else %}
+        <li class="empty">暂无</li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>待提升</h3>
+      <ul class="plain-list">
+        {% for w in score_report.weaknesses %}
+        <li>{{ w }}</li>
+        {% else %}
+        <li class="empty">暂无</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+  <div class="grid grid-2" style="margin-top:1rem">
+    <div class="panel">
+      <h3>已匹配技能</h3>
+      <div class="tag-row">
+        {% for s in score_report.matched_skills %}
+        <span class="tag ok">{{ s }}</span>
+        {% else %}
+        <span class="empty">未识别到岗位相关技能</span>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="panel">
+      <h3>建议补强技能</h3>
+      <div class="tag-row">
+        {% for s in score_report.missing_skills %}
+        <span class="tag warn">{{ s }}</span>
+        {% else %}
+        <span class="empty">覆盖较完整</span>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  {% if score_report.highlights %}
+  <div class="panel" style="margin-top:1rem">
+    <h3>简历亮点摘录</h3>
+    <ul class="plain-list">
+      {% for h in score_report.highlights %}
+      <li>{{ h }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+</section>
+{% endif %}

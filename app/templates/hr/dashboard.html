@@ -1,0 +1,82 @@
+{% extends "layout_app.html" %}
+{% block title %}HR 看板 · HirePilot{% endblock %}
+{% block brand_href %}{{ url_for('hr.dashboard') }}{% endblock %}
+{% block nav %}
+  <a href="{{ url_for('hr.dashboard') }}" class="active">达标看板</a>
+  <a href="{{ url_for('hr.jobs') }}">岗位管理</a>
+  <a href="{{ url_for('hr.calendar') }}">面试日历</a>
+  <a href="{{ url_for('hr.settings_weights') }}">评分权重</a>
+  <a href="{{ url_for('hr.settings_notify') }}">通知设置</a>
+  <a href="{{ url_for('hr.chat') }}">Agent 对话</a>
+{% endblock %}
+{% block content %}
+<h1>达标候选人看板</h1>
+<div class="actions" style="margin-bottom:1rem">
+  <a class="btn secondary" href="{{ url_for('hr.export_resumes', format='csv') }}">导出候选人 CSV</a>
+  <a class="btn secondary" href="{{ url_for('hr.export_resumes', format='pdf') }}">导出候选人 PDF</a>
+  {% if is_admin %}
+  <a class="btn secondary" href="{{ url_for('hr.export_audits', format='csv') }}">导出审计 CSV</a>
+  <a class="btn secondary" href="{{ url_for('hr.export_audits', format='pdf') }}">导出审计 PDF</a>
+  {% endif %}
+</div>
+
+{% if is_admin %}
+<form method="get" class="panel" style="margin-bottom:1rem">
+  <div class="form-row" style="margin-bottom:0.6rem">
+    <label for="q">指定查询（姓名或 ID）</label>
+    <input id="q" type="text" name="q" value="{{ query }}" placeholder="例如：张三 或 1" />
+  </div>
+  <div class="actions" style="margin-top:0">
+    <button class="btn" type="submit">强制查询</button>
+    <a class="btn secondary" href="{{ url_for('hr.dashboard') }}">清除 / 默认列表</a>
+  </div>
+</form>
+{% endif %}
+
+{% if force_mode %}
+<p><span class="badge warn">强制查询模式</span> 关键词：{{ query }}</p>
+{% endif %}
+
+{% if not resumes %}
+<p class="empty">暂无候选人。</p>
+{% else %}
+<div class="panel">
+  <table>
+    <thead>
+        <tr>
+        <th>综合分</th><th>简历分</th><th>面试最高</th><th>候选人</th><th>求职岗位</th>
+        <th>管道</th><th>推荐</th><th>达标</th><th>摘要</th><th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in resumes %}
+      {% set best = r.best_interview_score() %}
+      {% set comp = r.composite_score(resume_w, interview_w) %}
+      <tr>
+        <td><strong>{{ '%.1f'|format(comp) }}</strong></td>
+        <td>{{ r.total_score }}</td>
+        <td>{{ best if best is not none else '—' }}</td>
+        <td>{{ r.candidate.display_name }} <span class="badge">uid {{ r.candidate_id }}</span></td>
+        <td>{{ r.target_job_title or '—' }}</td>
+        <td>{{ stage_labels.get(r.pipeline_stage, r.pipeline_stage or '—') }}</td>
+        <td>{{ r.recommendation }}</td>
+        <td>
+          {% if r.meets_threshold %}<span class="badge ok">是</span>
+          {% else %}<span class="badge bad">否</span>{% endif %}
+        </td>
+        <td>{{ (r.recommendation_reason or '')[:80] }}{% if r.recommendation_reason and r.recommendation_reason|length > 80 %}…{% endif %}</td>
+        <td>
+          <a href="{{ url_for('hr.resume_detail', resume_id=r.id) }}">详情</a>
+          ·
+          <form method="post" action="{{ url_for('hr.delete_resume', resume_id=r.id) }}" style="display:inline"
+                onsubmit="return confirm('确认删除简历 #{{ r.id }}（{{ r.candidate.display_name }}）？面试记录等将一并删除且不可恢复。');">
+            <button class="btn secondary" type="submit" style="padding:0.35rem 0.7rem;font-size:0.85rem;color:#b42318">删除</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

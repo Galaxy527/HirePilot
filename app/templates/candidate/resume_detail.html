@@ -1,0 +1,113 @@
+{% extends "layout_app.html" %}
+{% block title %}简历 #{{ resume.id }} · HirePilot{% endblock %}
+{% block brand_href %}{{ url_for('candidate.home') }}{% endblock %}
+{% block nav %}{% set nav_active = 'home' %}{% include "candidate/_nav.html" %}{% endblock %}
+{% block content %}
+<h1>简历评估 #{{ resume.id }}</h1>
+<p class="lede">
+  {{ resume.filename or '文本简历' }} · 阈值 {{ threshold }}
+  · 求职岗位 <strong>{{ resume.target_job_title or '未指定' }}</strong>
+  · 状态 <strong>{{ resume.processing_status }}</strong>
+</p>
+
+{% if resume.is_processing %}
+<div class="panel" id="processingPanel" data-status-url="{{ url_for('candidate.resume_status', resume_id=resume.id) }}">
+  <p class="lede" style="margin:0">AI 正在对照岗位需求评分，请稍候…（页面将自动刷新）</p>
+  <p class="mono" style="margin:0.6rem 0 0">processing_status={{ resume.processing_status }}</p>
+</div>
+<script>
+(function(){
+  const panel = document.getElementById('processingPanel');
+  if (!panel) return;
+  const url = panel.dataset.statusUrl;
+  const tick = () => fetch(url).then(r => r.json()).then(d => {
+    if (d.ready || d.failed) location.reload();
+  }).catch(() => {});
+  setInterval(tick, 2000);
+})();
+</script>
+{% elif resume.processing_status == 'failed' %}
+<div class="panel">
+  <span class="badge bad">评分失败</span>
+  <p class="lede">请重新上传，或联系管理员查看 worker 日志。</p>
+</div>
+{% else %}
+<div class="panel">
+  <div class="score-hero">
+    <div>
+      <div class="score-num">{{ resume.total_score if resume.total_score is not none else '—' }}</div>
+      <div class="badge {% if resume.recommendation == '推荐' %}ok{% elif resume.recommendation == '待定' %}warn{% else %}bad{% endif %}">
+        {{ resume.recommendation or '未评' }}
+      </div>
+      {% if resume.meets_threshold %}
+      <span class="badge ok">已达标 · 可面试</span>
+      {% else %}
+      <span class="badge bad">未达标 · 不可面试</span>
+      {% endif %}
+      {% if resume.pipeline_stage %}
+      <span class="badge">管道：{{ resume.pipeline_stage }}</span>
+      {% endif %}
+    </div>
+    <p class="lede" style="margin:0;flex:1">{{ resume.recommendation_reason }}</p>
+  </div>
+  <div class="dims">
+    <div class="dim"><div class="k">技能匹配</div><div class="v">{{ resume.skill_score }}</div></div>
+    <div class="dim"><div class="k">项目经验</div><div class="v">{{ resume.project_score }}</div></div>
+    <div class="dim"><div class="k">教育背景</div><div class="v">{{ resume.education_score }}</div></div>
+    <div class="dim"><div class="k">岗位契合</div><div class="v">{{ resume.fit_score }}</div></div>
+  </div>
+</div>
+
+<div class="actions">
+  {% if resume.meets_threshold and resume.remaining_interviews(max_interviews) > 0 %}
+  <form method="post" action="{{ url_for('candidate.interview_start', resume_id=resume.id) }}">
+    <button class="btn warn" type="submit">开始模拟面试（剩余 {{ resume.remaining_interviews(max_interviews) }} 次）</button>
+  </form>
+  {% elif resume.meets_threshold %}
+  <a class="btn warn" href="{{ url_for('candidate.interview_hub') }}">查看面试记录（次数已用尽或进行中）</a>
+  {% else %}
+  <span class="badge bad">未达 {{ threshold }} 分，暂不可面试</span>
+  {% endif %}
+  <a class="btn secondary" href="{{ url_for('candidate.interview_hub') }}">模拟面试中心</a>
+  <a class="btn secondary" href="{{ url_for('candidate.home') }}">返回</a>
+</div>
+
+{% include "partials/score_report.html" %}
+{% endif %}
+
+<section style="margin-top:1.5rem">
+  <h2>面试记录</h2>
+  {% if not interviews %}
+  <p class="empty">暂无面试。</p>
+  {% else %}
+  <div class="panel">
+    <table>
+      <thead><tr><th>场次</th><th>状态</th><th>分数</th><th></th></tr></thead>
+      <tbody>
+        {% for s in interviews %}
+        <tr>
+          <td>第 {{ s.round_no }} 场</td>
+          <td>{{ s.status }}</td>
+          <td>{{ s.score if s.score is not none else '—' }}</td>
+          <td>
+            {% if s.status == 'in_progress' %}
+            <a href="{{ url_for('candidate.interview_room', session_id=s.id) }}">继续</a>
+            {% else %}
+            <a href="{{ url_for('candidate.interview_report', session_id=s.id) }}">报告</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</section>
+
+{% if not resume.is_processing and resume.processing_status != 'failed' %}
+<details style="margin-top:1.25rem">
+  <summary>原始文本</summary>
+  <pre class="mono">{{ resume.raw_text }}</pre>
+</details>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends "layout_app.html" %}
+{% block title %}候选人工作台 · HirePilot{% endblock %}
+{% block brand_href %}{{ url_for('candidate.home') }}{% endblock %}
+{% block nav %}{% set nav_active = 'home' %}{% include "candidate/_nav.html" %}{% endblock %}
+{% block content %}
+<h1>你好，{{ current_user.display_name }}</h1>
+<p class="lede">上传简历获取多维评分与推荐意见；达到 {{ threshold }} 分后可开启最多 3 场模拟面试。</p>
+
+<div class="actions" style="margin-top:0">
+  <a class="btn" href="{{ url_for('candidate.upload_resume') }}">上传 / 粘贴简历</a>
+  <a class="btn warn" href="{{ url_for('candidate.interview_hub') }}">模拟面试</a>
+  <a class="btn secondary" href="{{ url_for('candidate.chat') }}">与 Agent 对话</a>
+</div>
+
+<section style="margin-top:1.5rem">
+  <h2>我的简历</h2>
+  {% if not resumes %}
+  <p class="empty">还没有简历，先上传一份吧。</p>
+  {% else %}
+  <div class="panel">
+    <table>
+      <thead>
+        <tr><th>ID</th><th>求职岗位</th><th>文件</th><th>总分</th><th>推荐</th><th>达标</th><th>面试</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for r in resumes %}
+        <tr>
+          <td>{{ r.id }}</td>
+          <td>{{ r.target_job_title or '—' }}</td>
+          <td>{{ r.filename or '—' }}</td>
+          <td>{{ r.total_score if r.total_score is not none else '—' }}</td>
+          <td>{{ r.recommendation or '—' }}</td>
+          <td>
+            {% if r.meets_threshold %}<span class="badge ok">是</span>
+            {% else %}<span class="badge bad">否</span>{% endif %}
+          </td>
+          <td>{{ r.interview_count() }}/3</td>
+          <td>
+            <a href="{{ url_for('candidate.resume_detail', resume_id=r.id) }}">评分详情</a>
+            {% if r.meets_threshold and r.remaining_interviews(3) > 0 %}
+            ·
+            <form method="post" action="{{ url_for('candidate.interview_start', resume_id=r.id) }}" style="display:inline">
+              <button class="btn warn" type="submit" style="padding:0.35rem 0.7rem;font-size:0.85rem">去面试</button>
+            </form>
+            {% elif r.meets_threshold %}
+            · <a href="{{ url_for('candidate.interview_hub') }}">查看面试</a>
+            {% endif %}
+            ·
+            <form method="post" action="{{ url_for('candidate.delete_resume', resume_id=r.id) }}" style="display:inline"
+                  onsubmit="return confirm('确认删除简历 #{{ r.id }}？相关面试记录也会删除，且不可恢复。');">
+              <button class="btn secondary" type="submit" style="padding:0.35rem 0.7rem;font-size:0.85rem;color:#b42318">删除</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends "layout_app.html" %}
+{% block title %}上传简历 · HirePilot{% endblock %}
+{% block brand_href %}{{ url_for('candidate.home') }}{% endblock %}
+{% block nav %}{% set nav_active = 'upload' %}{% include "candidate/_nav.html" %}{% endblock %}
+{% block content %}
+<h1>上传简历</h1>
+<p class="lede">选择求职岗位即可。系统会自动匹配 HR 发布的岗位需求，并由 AI 对照评分。支持 PDF / Word(DOCX) / TXT / MD 或粘贴文本。</p>
+
+{% if not jobs %}
+<div class="flash error">当前暂无启用中的企业岗位，请先联系 HR 在「岗位管理」中发布。</div>
+{% endif %}
+
+<form method="post" enctype="multipart/form-data" class="panel" id="uploadForm">
+  <div class="form-row">
+    <label for="job_id">求职岗位 *</label>
+    <select id="job_id" name="job_id" required {% if not jobs %}disabled{% endif %}>
+      <option value="">— 请选择 HR 已发布岗位 —</option>
+      {% for j in jobs %}
+      <option value="{{ j.id }}" {% if form and form.get('job_id')|string == j.id|string %}selected{% endif %}>
+        {{ j.title }}{% if j.department %} · {{ j.department }}{% endif %}
+      </option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="form-row" id="jobPreviewWrap" style="display:none">
+    <label>系统将使用的岗位需求（自动带入，只读）</label>
+    <pre class="mono job-preview" id="jobPreview" style="color:var(--ink);margin:0;white-space:pre-wrap"></pre>
+  </div>
+  <div class="form-row">
+    <label for="file">上传简历文件</label>
+    <input id="file" type="file" name="file" accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+  </div>
+  <div class="form-row">
+    <label for="paste_text">或粘贴简历文本</label>
+    <textarea id="paste_text" name="paste_text" placeholder="在此粘贴完整简历…"></textarea>
+  </div>
+  <button class="btn" type="submit" {% if not jobs %}disabled{% endif %}>匹配岗位并 AI 评分</button>
+</form>
+<script>
+  const JOBS = {
+    {% for j in jobs %}
+    "{{ j.id }}": { title: {{ j.title|tojson }}, requirements: {{ j.requirements|tojson }} }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  };
+  const sel = document.getElementById('job_id');
+  const wrap = document.getElementById('jobPreviewWrap');
+  const preview = document.getElementById('jobPreview');
+  function refreshPreview() {
+    const job = JOBS[sel.value];
+    if (!job) {
+      wrap.style.display = 'none';
+      preview.textContent = '';
+      return;
+    }
+    wrap.style.display = 'block';
+    preview.textContent = '岗位：' + job.title + '\n\n' + (job.requirements || '');
+  }
+  sel.addEventListener('change', refreshPreview);
+  refreshPreview();
+</script>
+{% endblock %}

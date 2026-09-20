@@ -1,0 +1,18 @@
+{% extends "layout_app.html" %}
+{% block title %}隐私与数据删除 · HirePilot{% endblock %}
+{% block brand_href %}{{ url_for('candidate.home') }}{% endblock %}
+{% block nav %}{% set nav_active = 'privacy' %}{% include "candidate/_nav.html" %}{% endblock %}
+{% block content %}
+<h1>隐私与数据删除</h1>
+<p class="lede">
+  系统默认简历留存 {{ retention_days }} 天（可配置 PII_RETENTION_DAYS）。
+  你可立即删除本人简历、面试、对话与相关检索片段。此操作不可恢复。
+</p>
+<form method="post" class="panel">
+  <div class="form-row">
+    <label for="confirm">输入 DELETE 确认</label>
+    <input id="confirm" name="confirm" type="text" required placeholder="DELETE" autocomplete="off" />
+  </div>
+  <button class="btn" type="submit" style="background:#c44536">永久删除我的数据</button>
+</form>
+{% endblock %}

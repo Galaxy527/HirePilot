@@ -1,0 +1,32 @@
+{% extends "layout_app.html" %}
+{% block title %}通知 · HirePilot{% endblock %}
+{% block brand_href %}#{% endblock %}
+{% block nav %}{% endblock %}
+{% block content %}
+<h1>站内通知</h1>
+<form method="post" action="{{ mark_all_url }}" style="margin-bottom:1rem">
+  <button class="btn secondary" type="submit">全部标为已读</button>
+</form>
+{% if not notifications %}
+<p class="empty">暂无通知。</p>
+{% else %}
+{% for n in notifications %}
+<div class="panel" style="margin-bottom:0.6rem;{% if not n.is_read %}border-color:rgba(46,196,182,0.45){% endif %}">
+  <div style="display:flex;justify-content:space-between;gap:1rem;align-items:flex-start">
+    <div>
+      <strong>{{ n.title }}</strong>
+      <p class="lede" style="margin:0.35rem 0">{{ n.body }}</p>
+      <div class="lede" style="margin:0;font-size:0.8rem">{{ n.created_at }}</div>
+      {% if n.link %}<p style="margin:0.4rem 0 0"><a href="{{ n.link }}">查看</a></p>{% endif %}
+    </div>
+    {% if not n.is_read %}
+    <form method="post" action="{{ mark_all_url }}">
+      <input type="hidden" name="id" value="{{ n.id }}" />
+      <button class="btn secondary" type="submit">已读</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+{% endfor %}
+{% endif %}
+{% endblock %}

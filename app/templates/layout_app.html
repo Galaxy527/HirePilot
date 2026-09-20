@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="shell">
+  <header class="topbar">
+    <a class="brand" href="{% block brand_href %}#{% endblock %}">Hire<span>Pilot</span></a>
+    <nav class="nav">
+      {% block nav %}{% endblock %}
+      {% if current_user.is_authenticated %}
+      <a href="{% if current_user.is_hr %}{{ url_for('hr.notifications') }}{% else %}{{ url_for('candidate.notifications') }}{% endif %}">
+        通知{% if unread_notifications %}<span class="badge warn" style="margin-left:0.25rem">{{ unread_notifications }}</span>{% endif %}
+      </a>
+      {% endif %}
+      <span class="user-chip">{{ current_user.display_name }} · {{ current_user.role }}</span>
+      <a href="{{ url_for('auth.logout') }}">退出</a>
+    </nav>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-wrap">
+      {% for cat, msg in messages %}
+      <div class="flash {{ cat }}">{{ msg }}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+</div>
+<script>
+(function(){
+  const token = document.querySelector('meta[name="csrf-token"]');
+  if (!token) return;
+  document.querySelectorAll('form[method="post"], form[method="POST"]').forEach((form) => {
+    if (form.querySelector('input[name="csrf_token"]')) return;
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'csrf_token';
+    input.value = token.content;
+    form.prepend(input);
+  });
+})();
+</script>
+{% endblock %}

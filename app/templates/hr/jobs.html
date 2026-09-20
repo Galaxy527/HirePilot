@@ -1,0 +1,54 @@
+{% extends "layout_app.html" %}
+{% block title %}岗位管理 · HirePilot{% endblock %}
+{% block brand_href %}{{ url_for('hr.dashboard') }}{% endblock %}
+{% block nav %}
+  <a href="{{ url_for('hr.dashboard') }}">达标看板</a>
+  <a href="{{ url_for('hr.jobs') }}" class="active">岗位管理</a>
+  <a href="{{ url_for('hr.settings_weights') }}">评分权重</a>
+  <a href="{{ url_for('hr.chat') }}">Agent 对话</a>
+{% endblock %}
+{% block content %}
+<h1>企业岗位需求</h1>
+<p class="lede">发布岗位后，候选人上传简历时可选择；AI 评分与模拟面试将对照该岗位需求进行。</p>
+
+<form method="post" class="panel" style="margin-bottom:1.25rem">
+  <div class="form-row">
+    <label for="title">岗位名称 *</label>
+    <input id="title" name="title" type="text" required placeholder="例如：Python 后端工程师" />
+  </div>
+  <div class="form-row">
+    <label for="department">部门</label>
+    <input id="department" name="department" type="text" placeholder="例如：研发中心" />
+  </div>
+  <div class="form-row">
+    <label for="requirements">岗位需求 / JD *</label>
+    <textarea id="requirements" name="requirements" required rows="6"
+              placeholder="职责、必备技能、加分项、年限要求…"></textarea>
+  </div>
+  <button class="btn" type="submit">发布岗位</button>
+</form>
+
+<section>
+  <h2>已发布岗位</h2>
+  {% if not jobs %}
+  <p class="empty">暂无岗位。</p>
+  {% else %}
+  {% for j in jobs %}
+  <div class="panel" style="margin-bottom:0.8rem">
+    <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;align-items:flex-start">
+      <div>
+        <h3 style="margin-bottom:0.35rem">{{ j.title }}
+          {% if j.department %}<span class="badge">{{ j.department }}</span>{% endif %}
+          {% if j.is_active %}<span class="badge ok">启用</span>{% else %}<span class="badge bad">停用</span>{% endif %}
+        </h3>
+        <pre class="mono" style="color:var(--ink);margin:0.4rem 0 0">{{ j.requirements }}</pre>
+      </div>
+      <form method="post" action="{{ url_for('hr.job_toggle', job_id=j.id) }}">
+        <button class="btn secondary" type="submit">{{ '停用' if j.is_active else '启用' }}</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+  {% endif %}
+</section>
+{% endblock %}

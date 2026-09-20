@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %}{% if mode == 'register' %}注册{% else %}登录{% endif %} · HirePilot{% endblock %}
+{% block body %}
+<div class="login-page">
+  <div class="login-compose">
+    <a class="brand" href="{{ url_for('auth.login') }}">Hire<span>Pilot</span></a>
+    <p class="tagline">企业招聘中台：简历多维评分、达标模拟面试、候选人与 HR 分角色协作。</p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      <div class="flash-wrap">
+        {% for cat, msg in messages %}
+        <div class="flash {{ cat }}">{{ msg }}</div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    {% endwith %}
+
+    <div class="auth-mode-switch" id="authModeSwitch">
+      <a href="{{ url_for('auth.login', role=preset_role) }}"
+         class="{% if mode != 'register' %}active{% endif %}">登录</a>
+      <a href="{{ url_for('auth.register', role=preset_role) }}"
+         class="{% if mode == 'register' %}active{% endif %}">注册</a>
+    </div>
+
+    <div class="role-switch" id="roleSwitch">
+      <button type="button" data-role="candidate" class="{% if preset_role != 'hr' %}active{% endif %}">候选人入口</button>
+      <button type="button" data-role="hr" class="{% if preset_role == 'hr' %}active{% endif %}">HR 入口</button>
+    </div>
+
+    {% if mode == 'register' %}
+    <form method="post" action="{{ url_for('auth.register') }}" class="login-form panel" id="registerForm">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <input type="hidden" name="role" id="roleInput" value="{{ preset_role or 'candidate' }}" />
+      <div class="form-row">
+        <label for="username">用户名</label>
+        <input id="username" name="username" type="text" required autocomplete="username"
+               minlength="3" maxlength="20" pattern="[a-zA-Z][a-zA-Z0-9_]{2,19}"
+               value="{{ form.username or '' }}"
+               placeholder="字母开头，3–20 位" />
+      </div>
+      <div class="form-row">
+        <label for="display_name">显示名称</label>
+        <input id="display_name" name="display_name" type="text" required autocomplete="name"
+               minlength="2" maxlength="40"
+               value="{{ form.display_name or '' }}"
+               placeholder="将展示给 HR / 系统，2–40 字" />
+      </div>
+      <div class="form-row">
+        <label for="org_code">企业组织码</label>
+        <input id="org_code" name="org_code" type="text"
+               value="{{ form.org_code or default_org_code }}"
+               placeholder="默认 {{ default_org_code }}" />
+      </div>
+      <div class="form-row">
+        <label for="email">邮箱（用于邮件通知）</label>
+        <input id="email" name="email" type="email" value="{{ form.email or '' }}"
+               placeholder="you@company.com" />
+      </div>
+      <div class="form-row">
+        <label for="phone">手机（用于短信通知）</label>
+        <input id="phone" name="phone" type="tel" value="{{ form.phone or '' }}"
+               placeholder="13800000000" />
+      </div>
+      <div class="form-row" id="hrInviteRow" style="{% if preset_role != 'hr' %}display:none{% endif %}">
+        <label for="hr_invite">HR 邀请码</label>
+        <input id="hr_invite" name="hr_invite" type="text" autocomplete="off"
+               placeholder="公开注册仅候选人；HR 须填写邀请码" />
+      </div>
+      <div class="form-row">
+        <label for="password">密码</label>
+        <input id="password" name="password" type="password" required autocomplete="new-password"
+               minlength="6" maxlength="64" placeholder="至少 6 位" />
+      </div>
+      <div class="form-row">
+        <label for="confirm_password">确认密码</label>
+        <input id="confirm_password" name="confirm_password" type="password" required
+               autocomplete="new-password" minlength="6" maxlength="64" placeholder="再次输入密码" />
+      </div>
+      <ul class="auth-rules">
+        <li>用户名：3–20 位，字母开头，仅字母 / 数字 / 下划线</li>
+        <li>候选人可公开注册；HR 必须填写邀请码</li>
+        <li>组织码用于多租户隔离（演示默认 {{ default_org_code }}）</li>
+      </ul>
+      <button class="btn" type="submit" style="width:100%">创建账号并进入</button>
+    </form>
+    {% else %}
+    <form method="post" action="{{ url_for('auth.login') }}" class="login-form panel" id="loginForm">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <input type="hidden" name="role" id="roleInput" value="{{ preset_role or 'candidate' }}" />
+      <div class="form-row">
+        <label for="username">用户名</label>
+        <input id="username" name="username" type="text" required autocomplete="username"
+               value="{{ form.username or '' }}"
+               placeholder="candidate1 / hr1 / hr2" />
+      </div>
+      <div class="form-row">
+        <label for="password">密码</label>
+        <input id="password" name="password" type="password" required autocomplete="current-password"
+               placeholder="demo123" />
+      </div>
+      <button class="btn" type="submit" style="width:100%">进入工作台</button>
+      <p class="lede" style="margin-top:1rem;margin-bottom:0;font-size:0.85rem">
+        演示：候选人 <code>candidate1</code> · HR 管理员 <code>hr1</code> · HR 招聘 <code>hr2</code>，密码 <code>demo123</code>
+      </p>
+    </form>
+    {% endif %}
+  </div>
+</div>
+<script>
+  const switchEl = document.getElementById('roleSwitch');
+  const roleInput = document.getElementById('roleInput');
+  const modeLinks = document.querySelectorAll('#authModeSwitch a');
+  const hrInviteRow = document.getElementById('hrInviteRow');
+  switchEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-role]');
+    if (!btn) return;
+    switchEl.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    roleInput.value = btn.dataset.role;
+    if (hrInviteRow) hrInviteRow.style.display = btn.dataset.role === 'hr' ? '' : 'none';
+    modeLinks.forEach((a) => {
+      try {
+        const u = new URL(a.href, window.location.origin);
+        u.searchParams.set('role', btn.dataset.role);
+        a.href = u.pathname + u.search;
+      } catch (_) {}
+    });
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,54 @@
+{% extends "layout_app.html" %}
+{% block title %}模拟面试 · HirePilot{% endblock %}
+{% block brand_href %}{{ url_for('candidate.home') }}{% endblock %}
+{% block nav %}{% set nav_active = 'interview' %}{% include "candidate/_nav.html" %}{% endblock %}
+{% block content %}
+<h1>模拟面试 · 第 {{ session.round_no }} 场</h1>
+<p class="lede">简历 #{{ resume.id }} · 进度 {{ session.current_index }}/{{ total }} · 状态 {{ session.status }} · 题目由 AI 根据简历现场生成</p>
+
+{% if preparing %}
+<div class="panel" id="prepPanel" data-status-url="{{ url_for('candidate.interview_status', session_id=session.id) }}">
+  <p class="lede" style="margin:0">AI 正在根据你的简历与岗位需求出题，请稍候…</p>
+</div>
+<script>
+(function(){
+  const panel = document.getElementById('prepPanel');
+  if (!panel) return;
+  const url = panel.dataset.statusUrl;
+  const tick = () => fetch(url).then(r => r.json()).then(d => {
+    if (d.ready) location.reload();
+  }).catch(() => {});
+  setInterval(tick, 2000);
+})();
+</script>
+{% else %}
+
+{% if session.qa_list() %}
+<div class="panel" style="margin-bottom:1rem">
+  {% for item in session.qa_list() %}
+  <div style="margin-bottom:0.9rem">
+    <strong>Q{{ loop.index }}.</strong> {{ item.question }}
+    <div class="mono" style="margin:0.35rem 0">{{ item.answer }}</div>
+    <span class="badge">评 {{ item.eval_score }} · {{ item.eval_note }}</span>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if current_question %}
+<div class="panel">
+  <h2>第 {{ session.current_index + 1 }} 题</h2>
+  <p>{{ current_question }}</p>
+  <form method="post">
+    <div class="form-row">
+      <label for="answer">你的回答</label>
+      <textarea id="answer" name="answer" required placeholder="请输入回答…"></textarea>
+    </div>
+    <button class="btn" type="submit">提交回答</button>
+  </form>
+</div>
+{% elif session.status == 'completed' %}
+<p><a class="btn" href="{{ url_for('candidate.interview_report', session_id=session.id) }}">查看报告</a></p>
+{% endif %}
+{% endif %}
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "layout_app.html" %}
+{% block title %}后端日志 · 运维 · HirePilot{% endblock %}
+{% block brand_href %}{{ url_for('ops.home') }}{% endblock %}
+{% block nav %}
+  <a href="{{ url_for('ops.home') }}">运维首页</a>
+  <a href="{{ url_for('ops.rag_eval') }}">RAG 评测</a>
+  <a href="{{ url_for('ops.backend_logs') }}" class="active">后端日志</a>
+  <a href="{{ url_for('hr.dashboard') }}">返回 HR</a>
+{% endblock %}
+{% block content %}
+<h1>后端日志</h1>
+<p class="lede">运维专用。查看 HirePilot 运行日志，不在 HR 业务导航中展示。</p>
+<div class="actions" style="margin-bottom:1rem">
+  <a class="btn secondary" href="{{ url_for('ops.backend_logs') }}">刷新</a>
+  <a class="btn secondary" href="{{ url_for('ops.home') }}">运维首页</a>
+</div>
+
+{% if error %}
+<div class="flash error">{{ error }}</div>
+{% else %}
+<p class="lede" style="margin-bottom:0.6rem;font-size:0.9rem">
+  {{ log_path }} · 最近 {{ line_count }} 行
+</p>
+<div class="panel" style="padding:0;overflow:auto;max-height:70vh">
+  <pre class="mono" id="logView" style="margin:0;padding:1rem;white-space:pre-wrap;word-break:break-all;color:var(--ink);font-size:0.78rem;line-height:1.45">{% for line in lines %}{{ line }}
+{% endfor %}</pre>
+</div>
+<script>
+(function () {
+  var el = document.getElementById("logView");
+  if (el && el.parentElement) el.parentElement.scrollTop = el.parentElement.scrollHeight;
+})();
+</script>
+{% endif %}
+{% endblock %}
